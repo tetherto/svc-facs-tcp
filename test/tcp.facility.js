@@ -63,7 +63,7 @@ test('tcp.rpc.client tests', async (t) => {
     t.ok(fac.tcp instanceof TcpClient)
     t.alike(fac.tcp._conf, pick(facOpts, ['host', 'port', 'encoding']))
     t.ok(fac.rpc instanceof TcpRpcClient)
-    t.alike(fac.rpc._conf, pick({ ...facOpts, qkey: 'req' }, ['json', 'timeout', 'qkey', 'readStrategy', 'delay']))
+    t.alike(fac.rpc._conf, pick(facOpts, ['json', 'timeout', 'readStrategy', 'delay']))
     t.ok(fac.tcp.isFullyOpen())
   })
 

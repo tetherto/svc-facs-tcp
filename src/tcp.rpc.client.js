@@ -1,8 +1,8 @@
 'use strict'
 
 const { promiseSleep } = require('@bitfinex/lib-js-util-promise')
-const { TaskQueue } = require('@vigan-abd/task-queue-js')
 
+const TaskQueue = require('./task.queue')
 const TcpClient = require('./tcp.client')
 
 class TcpRpcClient {
@@ -33,9 +33,8 @@ class TcpRpcClient {
     }
 
     this._tcp = tcp || new TcpClient(tcpOpts)
-    this._conf = Object.freeze({ json, timeout, qkey: 'req', readStrategy, delay })
-    this._queue = new TaskQueue()
-    this._queue.initQueue(this._conf.qkey, 1)
+    this._conf = Object.freeze({ json, timeout, readStrategy, delay })
+    this._queue = new TaskQueue(1)
   }
 
   async start () {
@@ -49,7 +48,7 @@ class TcpRpcClient {
   }
 
   async request (payload) {
-    const res = await this._queue.pushTask(this._conf.qkey, async () => {
+    const res = await this._queue.pushTask(async () => {
       // send request
       await this._tcp.write(this._conf.json ? JSON.stringify(payload) : payload)
 
