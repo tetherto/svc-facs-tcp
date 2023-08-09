@@ -1,6 +1,5 @@
 'use strict'
 
-const _pick = require('lodash/pick')
 const sinon = require('sinon')
 const { test } = require('brittle')
 
@@ -11,6 +10,7 @@ const { tcpServerFactory } = require('./helper')
 const TcpFacility = require('../index')
 const TcpClient = require('../src/tcp.client')
 const TcpRpcClient = require('../src/tcp.rpc.client')
+const { pick } = require('../src/utils')
 
 test('tcp.rpc.client tests', async (t) => {
   const facCaller = {}
@@ -61,9 +61,9 @@ test('tcp.rpc.client tests', async (t) => {
     })
 
     t.ok(fac.tcp instanceof TcpClient)
-    t.alike(fac.tcp._conf, _pick(facOpts, ['host', 'port', 'encoding']))
+    t.alike(fac.tcp._conf, pick(facOpts, ['host', 'port', 'encoding']))
     t.ok(fac.rpc instanceof TcpRpcClient)
-    t.alike(fac.rpc._conf, _pick({ ...facOpts, qkey: 'req' }, ['json', 'timeout', 'qkey', 'readStrategy', 'delay']))
+    t.alike(fac.rpc._conf, pick({ ...facOpts, qkey: 'req' }, ['json', 'timeout', 'qkey', 'readStrategy', 'delay']))
     t.ok(fac.tcp.isFullyOpen())
   })
 

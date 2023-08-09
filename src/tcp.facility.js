@@ -1,11 +1,10 @@
 'use strict'
 
-const _isNil = require('lodash/isNil')
-const _pickBy = require('lodash/pickBy')
 const BaseFacility = require('bfx-facs-base')
 
 const TcpClient = require('./tcp.client')
 const TcpRpcClient = require('./tcp.rpc.client')
+const { isNil, pickBy } = require('./utils')
 
 class TcpFacility extends BaseFacility {
   constructor (caller, opts, ctx) {
@@ -20,20 +19,20 @@ class TcpFacility extends BaseFacility {
   async _start (cb) {
     try {
       this.tcp = new TcpClient(
-        _pickBy({
+        pickBy({
           host: this.opts.host,
           port: this.opts.port,
           encoding: this.opts.encoding
-        }, (v) => !_isNil(v))
+        }, (v) => !isNil(v))
       )
       this.rpc = new TcpRpcClient(
-        _pickBy({
+        pickBy({
           tcp: this.tcp,
           readStrategy: this.opts.readStrategy,
           json: this.opts.json,
           timeout: this.opts.timeout,
           delay: this.opts.delay
-        }, (v) => !_isNil(v))
+        }, (v) => !isNil(v))
       )
 
       await this.rpc.start()
