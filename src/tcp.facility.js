@@ -16,39 +16,33 @@ class TcpFacility extends BaseFacility {
     this.init()
   }
 
-  async _start (cb) {
-    try {
-      this.tcp = new TcpClient(
-        pickBy({
-          host: this.opts.host,
-          port: this.opts.port,
-          encoding: this.opts.encoding
-        }, (v) => !isNil(v))
-      )
-      this.rpc = new TcpRpcClient(
-        pickBy({
-          tcp: this.tcp,
-          readStrategy: this.opts.readStrategy,
-          json: this.opts.json,
-          timeout: this.opts.timeout,
-          delay: this.opts.delay
-        }, (v) => !isNil(v))
-      )
+  getClient (opts) {
+    const tcp = new TcpClient(
+      pickBy({
+        host: opts.host,
+        port: opts.port,
+        encoding: opts.encoding
+      }, (v) => !isNil(v))
+    )
 
-      await this.rpc.start()
-      cb()
-    } catch (err) {
-      cb(err)
-    }
+    return tcp
   }
 
-  async _stop (cb) {
-    try {
-      await this.rpc.stop()
-      cb()
-    } catch (err) {
-      cb(err)
-    }
+  async getRPC (opts) {
+    const rpc = new TcpRpcClient(
+      pickBy({
+        tcp: opts.tcp,
+        tcpOpts: opts.tcpOpts,
+        readStrategy: opts.readStrategy,
+        json: opts.json,
+        timeout: opts.timeout,
+        delay: opts.delay
+      }, (v) => !isNil(v))
+    )
+
+    await rpc.start()
+
+    return rpc
   }
 }
 
