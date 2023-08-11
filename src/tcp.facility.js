@@ -28,7 +28,7 @@ class TcpFacility extends BaseFacility {
     return tcp
   }
 
-  async getRPC (opts) {
+  getRPC (opts) {
     const rpc = new TcpRpcClient(
       pickBy({
         tcp: opts.tcp,
