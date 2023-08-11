@@ -40,8 +40,6 @@ class TcpFacility extends BaseFacility {
       }, (v) => !isNil(v))
     )
 
-    await rpc.start()
-
     return rpc
   }
 }
