@@ -20,25 +20,7 @@ const pickBy = (obj, predicate) => {
   return newObj
 }
 
-const pick = (obj, keys) => {
-  if (obj === null) {
-    return {}
-  }
-
-  const set = new Set(keys)
-
-  const newObj = {}
-  for (const key in obj) {
-    if (set.has(key)) {
-      newObj[key] = obj[key]
-    }
-  }
-
-  return newObj
-}
-
 module.exports = {
   isNil,
-  pick,
   pickBy
 }
