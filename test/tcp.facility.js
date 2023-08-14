@@ -18,9 +18,9 @@ test('tcp.rpc.client tests', async (t) => {
 
   const sandbox = sinon.createSandbox()
   const server = await tcpServerFactory({
-    host: facOpts.host,
-    port: facOpts.port,
-    encoding: facOpts.encoding,
+    host: '127.0.0.1',
+    port: 7070,
+    encoding: 'utf-8',
     cmdHandler: async (socket, data) => {
       const req = JSON.parse(data)
       const res = JSON.stringify({ pong: req.ping + 1 })
@@ -52,7 +52,7 @@ test('tcp.rpc.client tests', async (t) => {
     })
 
     await tcp.write(JSON.stringify({ ping: 1 }))
-    const res = await tcp.read({ strategy: TcpFacility.TCP_READ_STRATEGY.ON_END, timeout: facOpts.timeout })
+    const res = await tcp.read({ strategy: TcpFacility.TCP_READ_STRATEGY.ON_END, timeout: 500 })
     t.alike(JSON.parse(res), { pong: 2 })
   })
 
