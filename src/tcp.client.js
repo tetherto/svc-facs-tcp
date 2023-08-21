@@ -158,6 +158,7 @@ class TcpClient {
       this._socket.removeListener('data', dataHandler)
       this._socket.removeListener('end', endHandler)
       this._socket.removeListener('error', errHandler)
+      this._socket.end()
     }
   }
 }
