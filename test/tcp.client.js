@@ -180,6 +180,8 @@ test('tcp.client tests', async (t) => {
       t.not(data, 'test 1; test 2; test 3', 'should discard old buffer on ON_END strategy')
       t.is(data, '; test 2; test 3', 'should return whole buffer data once end is emitted on ON_END strategy')
 
+      t.is(serverSocket.destroyed, true, "close socket after reading, even if remote doesn't")
+
       let readPromise = tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END, timeout: 2000 })
       await sleep(500)
       serverSocket.write('spawn')
