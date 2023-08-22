@@ -84,89 +84,122 @@ test('tcp.client tests', async (t) => {
   })
 
   await t.test('read tests', async (t) => {
-    const sandbox = sinon.createSandbox()
+    await t.test('incorrect strategy and without data', async (t) => {
+      const sandbox = sinon.createSandbox()
+      const server = await tcpServerFactory({
+        encoding: 'utf-8'
+      })
 
-    let serverSocket = null
-    const server = await tcpServerFactory({
-      encoding: 'utf-8',
-      connectHandler: (socket) => {
-        serverSocket = socket
+      const tcp = new TcpClient({ host, port, encoding: 'utf-8' })
+
+      t.teardown(async () => {
+        await tcp.end()
+        await server.close()
+        await sandbox.restore()
+        await sleep(500)
+      })
+
+      await t.exception(
+        () => tcp.read({ strategy: 'all' }),
+        /ERR_TCP_READ_STRATEGY_UNKOWN/,
+        'client should fail when unknown read strategy is provided'
+      )
+
+      await t.exception(() => tcp.read({}), 'client should fail when connection is not opened')
+      await t.exception(() => tcp.read(
+        { strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA }),
+      'ON_DATA strategy should handle errors properly'
+      )
+      await t.exception(() => tcp.read(
+        { strategy: TcpClient.TCP_READ_STRATEGY.ON_END }),
+      'ON_END strategy should handle errors properly'
+      )
+    })
+    await t.test('ON_DATA strategy', async (t) => {
+      const sandbox = sinon.createSandbox()
+      let serverSocket = null
+      const server = await tcpServerFactory({
+        encoding: 'utf-8',
+        connectHandler: (socket) => {
+          serverSocket = socket
+        }
+      })
+
+      const tcp = new TcpClient({ host, port, encoding: 'utf-8' })
+      await tcp.open()
+      t.teardown(async () => {
+        await tcp.end()
+        await server.close()
+        await sandbox.restore()
+        await sleep(200)
+      })
+      const spy = sandbox.spy(tcp, 'open')
+      serverSocket.write('test 1')
+      const data = await tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA })
+      t.is(data, 'test 1', 'reads data successfully on ON_DATA strategy')
+
+      const batchData = []
+      for (let i = 0; i < 3; i++) {
+        serverSocket.write(i.toString())
+        batchData.push(await tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA }))
       }
+      t.alike(batchData, ['0', '1', '2'], 'should read data in order')
+      t.is(spy.callCount, 0, 'should be able to read multiple data without closing connection on ON_DATA strategy')
     })
 
-    const tcp = new TcpClient({ host, port, encoding: 'utf-8' })
+    await t.test('ON_END strategy', async (t) => {
+      const sandbox = sinon.createSandbox()
+      let serverSocket = null
+      const server = await tcpServerFactory({
+        encoding: 'utf-8',
+        connectHandler: (socket) => {
+          serverSocket = socket
+        }
+      })
 
-    t.teardown(async () => {
-      await tcp.end()
-      server.close()
-      sandbox.restore()
-      await sleep(200)
+      const tcp = new TcpClient({ host, port, encoding: 'utf-8' })
+      await tcp.open()
+      t.teardown(async () => {
+        await tcp.end()
+        server.close()
+        sandbox.restore()
+        await sleep(200)
+      })
+      const spy = sandbox.spy(tcp, 'open')
+      serverSocket.write('test 1')
+      await t.exception(
+        () => tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END }),
+        /ERR_TCP_READ_TIMEOUT/,
+        'should fail to return response in ON_END strategy if end is not emitted on socket'
+      )
+
+      serverSocket.write('; test 2')
+      serverSocket.write('; test 3')
+      serverSocket.destroy()
+      let data = await tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END })
+      t.not(data, 'test 1; test 2; test 3', 'should discard old buffer on ON_END strategy')
+      t.is(data, '; test 2; test 3', 'should return whole buffer data once end is emitted on ON_END strategy')
+
+      let readPromise = tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END, timeout: 2000 })
+      await sleep(500)
+      serverSocket.write('spawn')
+      await sleep(100)
+      serverSocket.write(' from')
+      await sleep(100)
+      serverSocket.write(' dead')
+      serverSocket.end()
+      data = await readPromise
+      t.is(data, 'spawn from dead')
+      t.is(spy.callCount, 1, 'should re open connection once it is closed for ON_END strategy')
+
+      spy.resetHistory()
+      readPromise = tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA, timeout: 2000 })
+      await sleep(500)
+      serverSocket.write('spawn again from dead')
+      data = await readPromise
+      t.is(data, 'spawn again from dead')
+      t.is(spy.callCount, 1, 'should re open connection once it is closed for ON_DATA strategy')
     })
-
-    await t.exception(
-      () => tcp.read({ strategy: 'all' }),
-      /ERR_TCP_READ_STRATEGY_UNKOWN/,
-      'client should fail when unknown read strategy is provided'
-    )
-
-    await t.exception(() => tcp.read({}), 'client should fail when connection is not opened')
-    await t.exception(() => tcp.read(
-      { strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA }),
-    'ON_DATA strategy should handle errors properly'
-    )
-    await t.exception(() => tcp.read(
-      { strategy: TcpClient.TCP_READ_STRATEGY.ON_END }),
-    'ON_END strategy should handle errors properly'
-    )
-
-    const spy = sandbox.spy(tcp, 'open')
-
-    serverSocket.write('test 1')
-    let data = await tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA })
-    t.is(data, 'test 1', 'reads data successfully on ON_DATA strategy')
-
-    const batchData = []
-    for (let i = 0; i < 3; i++) {
-      serverSocket.write(i.toString())
-      batchData.push(await tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA }))
-    }
-    t.alike(batchData, ['0', '1', '2'], 'should read data in order')
-    t.is(spy.callCount, 0, 'should be able to read multiple data without closing connection on ON_DATA strategy')
-
-    serverSocket.write('test 1')
-    await t.exception(
-      () => tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END }),
-      /ERR_TCP_READ_TIMEOUT/,
-      'should fail to return response in ON_END strategy if end is not emitted on socket'
-    )
-
-    serverSocket.write('; test 2')
-    serverSocket.write('; test 3')
-    serverSocket.destroy()
-    data = await tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END })
-    t.not(data, 'test 1; test 2; test 3', 'should discard old buffer on ON_END strategy')
-    t.is(data, '; test 2; test 3', 'should return whole buffer data once end is emitted on ON_END strategy')
-
-    spy.resetHistory()
-    let readPromise = tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_END, timeout: 2000 })
-    await sleep(500)
-    serverSocket.write('spawn')
-    await sleep(100)
-    serverSocket.write(' from')
-    await sleep(100)
-    serverSocket.write(' dead')
-    serverSocket.end()
-    data = await readPromise
-    t.is(data, 'spawn from dead')
-    t.is(spy.callCount, 1, 'should re open connection once it is closed for ON_END strategy')
-
-    spy.resetHistory()
-    readPromise = tcp.read({ strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA, timeout: 2000 })
-    await sleep(500)
-    serverSocket.write('spawn again from dead')
-    data = await readPromise
-    t.is(data, 'spawn again from dead')
-    t.is(spy.callCount, 1, 'should re open connection once it is closed for ON_DATA strategy')
   })
 
   await t.test('buffer tests', async (t) => {
