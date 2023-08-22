@@ -114,10 +114,6 @@ test('tcp.client tests', async (t) => {
       { strategy: TcpClient.TCP_READ_STRATEGY.ON_DATA }),
     'ON_DATA strategy should handle errors properly'
     )
-    await t.exception(() => tcp.read(
-      { strategy: TcpClient.TCP_READ_STRATEGY.ON_END }),
-    'ON_END strategy should handle errors properly'
-    )
 
     const spy = sandbox.spy(tcp, 'open')
 
@@ -167,6 +163,11 @@ test('tcp.client tests', async (t) => {
     data = await readPromise
     t.is(data, 'spawn again from dead')
     t.is(spy.callCount, 1, 'should re open connection once it is closed for ON_DATA strategy')
+
+    await t.exception(() => tcp.read(
+      { strategy: TcpClient.TCP_READ_STRATEGY.ON_END }),
+    'ON_END strategy should handle errors properly'
+    )
   })
 
   await t.test('buffer tests', async (t) => {
