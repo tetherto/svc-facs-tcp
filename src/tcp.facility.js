@@ -1,6 +1,6 @@
 'use strict'
 
-const BaseFacility = require('bfx-facs-base')
+const BaseFacility = require('@bitfinex/bfx-facs-base')
 
 const TcpClient = require('./tcp.client')
 const TcpRpcClient = require('./tcp.rpc.client')
