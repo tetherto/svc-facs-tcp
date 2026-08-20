@@ -39,7 +39,7 @@
   "homepage": "https://github.com/tetherto/svc-facs-tcp#readme",
   "dependencies": {
     "@bitfinex/bfx-facs-base": "^1.1.0",
-    "@bitfinex/lib-js-util-promise": "git+https://github.com/bitfinexcom/lib-js-util-promise.git",
+    "@bitfinex/lib-js-util-promise": "^1.1.0",
     "async": "^3.2.4"
   },
   "devDependencies": {
